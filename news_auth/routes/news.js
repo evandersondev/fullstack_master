@@ -3,8 +3,14 @@ const News = require('../models/news')
 
 const router = express.Router()
 
-router.get('/', (req, res) => {
-  res.send('Public news')
+router.get('/', async (req, res) => {
+  // let conditions = {}
+  // if (!('user' in req.session)) {
+  //   conditions = { category: 'public' }
+  // }
+  const conditions = { category: 'public' }
+  const news = await News.find(conditions)
+  res.render('news/index', { news })
 })
 
 module.exports = router

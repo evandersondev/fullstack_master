@@ -4,19 +4,20 @@ const { join } = require('path')
 const port = process.env.PORT || 3000
 const mongoose = require('mongoose')
 const User = require('./models/user')
+const News = require('./models/news')
 const news = require('./routes/news')
+const auth = require('./routes/auth')
+const pages = require('./routes/pages')
 const restrict = require('./routes/restrict')
 const session = require('express-session')
+const { request } = require('https')
 
 mongoose.Promise = global.Promise
 
 const mongo = process.env.MONGODB || 'mongodb://localhost/news'
 
-app.use(
-  express.json({
-    type: 'application/json',
-  }),
-)
+app.use(express.json())
+app.use(express.urlencoded({ extended: true }))
 
 app.set('views', join(__dirname, 'views'))
 app.set('view engine', 'ejs')
@@ -29,6 +30,14 @@ app.use(
 
 app.use(express.static(join(__dirname, 'public')))
 
+app.use((req, res, next) => {
+  if ('user' in req.session) {
+    res.locals.user = req.session.user
+  }
+
+  next()
+})
+
 app.use('/restrict', (req, res, next) => {
   if ('user' in req.session) {
     return next()
@@ -38,20 +47,8 @@ app.use('/restrict', (req, res, next) => {
 })
 app.use('/restrict', restrict)
 app.use('/news', news)
-app.get('/login', (req, res) => {
-  res.render('login')
-})
-
-app.post('/login', async (req, res) => {
-  const user = await User.findOne({
-    username: req.body.username,
-  })
-
-  console.log(req.body)
-  res.json(user)
-})
-
-app.get('/', (req, res) => res.render('index'))
+app.use('/', auth)
+app.use('/', pages)
 
 const createInitialUser = async () => {
   const total = await User.countDocuments({ username: 'evandersondev' })
@@ -66,6 +63,21 @@ const createInitialUser = async () => {
   } else {
     console.log('User already exists.')
   }
+
+  const news = News({
+    title: 'Public news ' + new Date().getTime(),
+    content: 'Content',
+    category: 'public',
+  })
+
+  const news2 = News({
+    title: 'Public news ' + new Date().getTime(),
+    content: 'Content',
+    category: 'private',
+  })
+
+  // await news.save()
+  // await news2.save()
 }
 
 mongoose
